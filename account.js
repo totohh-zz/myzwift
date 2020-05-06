@@ -40,11 +40,18 @@ class ZwiftAccount {
 
         this.activityService = new ActivityService(this.http);
         this.followService = new FollowService(this.http);
-        this.profileService = new ProfileService(this.http, this.followService, this.activityService);
+        this.profileService = new ProfileService(this.http);
     }
 
-    getMe = () => {
-        return this.profileService.me();
+    getMe = async () => {
+        const profile = await this.profileService.me();
+
+        const followersId = await this.followService.followers(profile.id);
+        profile.followers = await Promise.all(followersId.map(id => this.profileService.profile(id)));
+        const followeesId = await this.followService.followees(profile.id);
+        profile.followees = await Promise.all(followeesId.map(id => this.profileService.profile(id)));
+        profile.activities = await this.activityService.allActivities(profile.id);
+        return profile;
     };
 }
 
